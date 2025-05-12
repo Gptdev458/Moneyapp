@@ -1,9 +1,12 @@
 // src/services/balanceService.ts
 // Service for updating account balances when transactions are added, updated, or deleted
 
-import { IAccount } from '../models/account';
-import { ITransaction } from '../models/transaction';
+import { Account, Transaction } from '../types';
 import { getAccounts, saveAccounts } from './storageService';
+
+// Use type aliases for backward compatibility during transition
+type IAccount = Account;
+type ITransaction = Transaction;
 
 /**
  * Updates account balances when a transaction is added, updated, or deleted

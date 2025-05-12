@@ -2,14 +2,17 @@
 // Storage service for handling data persistence with AsyncStorage
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { IAccount } from '../models/account';
-import { IBudget } from '../models/budget';
-import { ICategory } from '../models/category';
-import { IGoal } from '../models/goal';
-import { ISettings } from '../models/settings';
-import { ITransaction } from '../models/transaction';
+import { Account, Budget, Category, Goal, Settings, Transaction } from '../types';
 import { generateId } from '../utils/idGenerator';
 import { updateBalancesForTransaction } from './balanceService';
+
+// Use type aliases for backward compatibility during transition
+type IAccount = Account;
+type IBudget = Budget;
+type ICategory = Category;
+type IGoal = Goal;
+type ISettings = Settings;
+type ITransaction = Transaction;
 
 // Storage Keys
 export const STORAGE_KEYS = {

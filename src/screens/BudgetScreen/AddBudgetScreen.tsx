@@ -25,8 +25,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useBudgetContext } from '../../contexts/BudgetContext';
 import { useCategoryContext } from '../../contexts/CategoryContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
-import { IBudget } from '../../models/budget';
-import { RootStackParamList } from '../../types';
+import { Budget, RootStackParamList } from '../../types';
 
 type AddBudgetScreenRouteProp = RouteProp<RootStackParamList, 'AddBudget'>;
 type AddBudgetScreenNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -87,7 +86,7 @@ const AddBudgetScreen = () => {
     try {
       setIsLoading(true);
       
-      const budgetData: Omit<IBudget, 'id'> = {
+      const budgetData: Omit<Budget, 'id'> = {
         amount: parseFloat(amount),
         periodType,
         startDate: startDate.toISOString(),

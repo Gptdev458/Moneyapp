@@ -1,7 +1,7 @@
 // src/contexts/BudgetContext.tsx
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { IBudget } from '../models/budget';
 import * as storageService from '../services/storageService';
+import { Budget } from '../types';
 import { useTransactionContext } from './TransactionContext';
 
 // Debug flag for logging
@@ -9,19 +9,19 @@ const DEBUG_ENABLED = false;
 
 // Context type definition
 interface BudgetContextType {
-  budgets: IBudget[];
+  budgets: Budget[];
   isLoading: boolean;
   error: Error | null;
-  getBudgetById: (id: string) => IBudget | undefined;
-  addBudget: (budget: Omit<IBudget, 'id'>) => Promise<IBudget>;
-  updateBudget: (budget: IBudget) => Promise<IBudget>;
+  getBudgetById: (id: string) => Budget | undefined;
+  addBudget: (budget: Omit<Budget, 'id'>) => Promise<Budget>;
+  updateBudget: (budget: Budget) => Promise<Budget>;
   deleteBudget: (id: string) => Promise<void>;
   refreshBudgets: () => Promise<void>;
   getBudgetProgress: (budgetId: string) => number;
   getBudgetSpent: (budgetId: string) => number;
   getBudgetRemaining: (budgetId: string) => number;
-  getBudgetsForCategory: (categoryId: string) => IBudget[];
-  getCurrentPeriodBudgets: (date?: Date) => IBudget[];
+  getBudgetsForCategory: (categoryId: string) => Budget[];
+  getCurrentPeriodBudgets: (date?: Date) => Budget[];
 }
 
 // Create the context
@@ -29,7 +29,7 @@ export const BudgetContext = createContext<BudgetContextType | undefined>(undefi
 
 // The provider component
 export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [budgets, setBudgets] = useState<IBudget[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   
@@ -92,12 +92,12 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [debugLog]);
 
   // Get a budget by ID
-  const getBudgetById = useCallback((id: string): IBudget | undefined => {
+  const getBudgetById = useCallback((id: string): Budget | undefined => {
     return budgets.find(budget => budget.id === id);
   }, [budgets]);
 
   // Add a new budget
-  const addBudget = useCallback(async (budgetData: Omit<IBudget, 'id'>): Promise<IBudget> => {
+  const addBudget = useCallback(async (budgetData: Omit<Budget, 'id'>): Promise<Budget> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -121,7 +121,7 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [debugLog]);
 
   // Update an existing budget
-  const updateBudget = useCallback(async (budget: IBudget): Promise<IBudget> => {
+  const updateBudget = useCallback(async (budget: Budget): Promise<Budget> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -172,7 +172,7 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [debugLog]);
 
   // Helper to get default end date based on period type
-  const getDefaultEndDate = (budget: IBudget): Date => {
+  const getDefaultEndDate = (budget: Budget): Date => {
     const startDate = new Date(budget.startDate);
     const endDate = new Date(startDate);
     
@@ -226,12 +226,12 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [getBudgetById, getBudgetSpent]);
 
   // Get budgets for a specific category
-  const getBudgetsForCategory = useCallback((categoryId: string): IBudget[] => {
+  const getBudgetsForCategory = useCallback((categoryId: string): Budget[] => {
     return budgets.filter(budget => budget.categoryId === categoryId);
   }, [budgets]);
 
   // Get budgets for the current period (month/year)
-  const getCurrentPeriodBudgets = useCallback((date?: Date): IBudget[] => {
+  const getCurrentPeriodBudgets = useCallback((date?: Date): Budget[] => {
     const targetDate = date || new Date();
     const targetMonth = targetDate.getMonth();
     const targetYear = targetDate.getFullYear();

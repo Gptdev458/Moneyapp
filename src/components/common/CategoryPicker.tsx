@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { ICategory } from '../../models/category';
+import { Category } from '../../types';
 
 interface CategoryPickerProps {
-  categories: ICategory[];
+  categories: Category[];
   selectedCategoryId: string | null;
   onSelectCategory: (categoryId: string) => void;
   onDismiss: () => void;
@@ -38,7 +38,7 @@ const CategoryPicker: React.FC<CategoryPickerProps> = ({
     return filteredCategories.filter(cat => cat.parentId === parentId);
   };
   
-  const renderMainCategoryItem = ({ item }: { item: ICategory }) => {
+  const renderMainCategoryItem = ({ item }: { item: Category }) => {
     const hasSubcategories = getSubcategories(item.id).length > 0;
     const isSelected = item.id === selectedMainCategoryId;
     
@@ -70,7 +70,7 @@ const CategoryPicker: React.FC<CategoryPickerProps> = ({
     );
   };
   
-  const renderSubcategoryItem = ({ item }: { item: ICategory }) => {
+  const renderSubcategoryItem = ({ item }: { item: Category }) => {
     return (
       <TouchableOpacity
         style={[styles.categoryItem, { borderBottomColor: '#3d4049' }]}

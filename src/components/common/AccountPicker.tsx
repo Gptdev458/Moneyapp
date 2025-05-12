@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { IAccount } from '../../models/account';
-import { AccountType } from '../../types';
+import { Account, AccountType } from '../../types';
 
 // Helper function to get friendly display name for account types
 const getAccountTypeDisplayName = (type: AccountType): string => {
@@ -19,7 +18,7 @@ const getAccountTypeDisplayName = (type: AccountType): string => {
 };
 
 interface AccountPickerProps {
-  accounts: IAccount[];
+  accounts: Account[];
   selectedAccountId: string | null;
   onSelectAccount: (accountId: string) => void;
   onDismiss: () => void;
@@ -103,7 +102,7 @@ const AccountPicker: React.FC<AccountPickerProps> = ({
   };
 
   // Render account item (right column)
-  const renderAccountItem = ({ item: account }: { item: IAccount }) => {
+  const renderAccountItem = ({ item: account }: { item: Account }) => {
     return (
       <TouchableOpacity
         style={[styles.categoryItem, { borderBottomColor: '#3d4049' }]}

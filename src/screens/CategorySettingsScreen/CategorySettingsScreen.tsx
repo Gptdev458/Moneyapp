@@ -8,8 +8,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import IconPicker from '../../components/IconPicker/IconPicker';
 import { useCategoryContext } from '../../contexts/CategoryContext';
-import { ICategory } from '../../models/category';
-import { RootStackParamList } from '../../types';
+import { Category, RootStackParamList } from '../../types';
 
 type CategorySettingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CategorySettings'>;
 
@@ -84,7 +83,7 @@ const CategorySettingsScreen = () => {
   const { categories, addCategory, updateCategory, deleteCategory, refreshCategories } = useCategoryContext();
   
   const [editCategoryVisible, setEditCategoryVisible] = useState(false);
-  const [currentCategory, setCurrentCategory] = useState<ICategory | null>(null);
+  const [currentCategory, setCurrentCategory] = useState<Category | null>(null);
   const [categoryName, setCategoryName] = useState('');
   const [categoryType, setCategoryType] = useState<'income' | 'expense'>('income');
   const [categoryParentId, setCategoryParentId] = useState<string | undefined>(undefined);
@@ -102,7 +101,7 @@ const CategorySettingsScreen = () => {
   };
 
   // Group categories by type and parent/child relationship
-  const groupedCategories = categories.reduce<Record<string, ICategory[]>>((acc, category) => {
+  const groupedCategories = categories.reduce<Record<string, Category[]>>((acc, category) => {
     if (!category.isArchived) {
       if (!acc[category.type]) {
         acc[category.type] = [];
@@ -132,7 +131,7 @@ const CategorySettingsScreen = () => {
     setEditCategoryVisible(true);
   };
 
-  const handleEditCategory = (category: ICategory) => {
+  const handleEditCategory = (category: Category) => {
     setCurrentCategory(category);
     setCategoryName(category.name);
     setCategoryType(category.type);
@@ -142,7 +141,7 @@ const CategorySettingsScreen = () => {
     setEditCategoryVisible(true);
   };
 
-  const handleDeleteCategory = (category: ICategory) => {
+  const handleDeleteCategory = (category: Category) => {
     // Check if this category has subcategories
     const hasSubcategories = categories.some(c => c.parentId === category.id && !c.isArchived);
     
@@ -218,7 +217,7 @@ const CategorySettingsScreen = () => {
     setIconPickerVisible(false);
   };
 
-  const renderSubcategory = (item: ICategory) => (
+  const renderSubcategory = (item: Category) => (
     <View key={item.id} style={styles.subcategoryItem}>
       <View style={styles.subcategoryLeft}>
         <View style={[styles.iconContainer, { backgroundColor: item.color || theme.colors.primary }]}>
@@ -253,7 +252,7 @@ const CategorySettingsScreen = () => {
     </View>
   );
 
-  const renderMainCategory = (category: ICategory) => {
+  const renderMainCategory = (category: Category) => {
     const subcategories = getSubcategories(category.id);
     const isExpanded = expandedCategories[category.id];
     
