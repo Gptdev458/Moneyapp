@@ -2,12 +2,12 @@
 import { CompositeNavigationProp, RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useLayoutEffect, useMemo, useState } from 'react';
-import { SectionList, StyleSheet, View } from 'react-native';
-import { Appbar, Avatar, FAB, Surface, Text, TouchableRipple } from 'react-native-paper';
+import { Alert, SectionList, StyleSheet, View } from 'react-native';
+import { Appbar, Avatar, Button, Dialog, FAB, Portal, Surface, Text, TextInput, TouchableRipple } from 'react-native-paper';
 
+import { useAccountContext } from '../../contexts/AccountContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { Account, AccountsStackParamList, RootStackParamList, Transaction } from '../../types';
-// import { useAccountContext } from '../../contexts/AccountContext';
 // import { useTransactionContext } from '../../contexts/TransactionContext';
 
 type AccountDetailScreenRouteProp = RouteProp<AccountsStackParamList, 'AccountDetail'>;
@@ -52,20 +52,96 @@ const AccountDetailScreen = () => {
   const { theme } = useAppTheme();
   const route = useRoute<AccountDetailScreenRouteProp>();
   const navigation = useNavigation<AccountDetailScreenNavigationProp>();
-  // const { getAccountById } = useAccountContext();
-  // const { getTransactionsForAccount, calculateBalanceForPeriod } = useTransactionContext();
+  const { getAccountById, updateAccount } = useAccountContext();
+  // const { getTransactionsForAccount, calculateBalanceForPeriod, addTransaction } = useTransactionContext();
 
   const { accountId } = route.params;
-  // const account = getAccountById(accountId) || MOCK_ACCOUNT_DETAIL; // Fetch from context
-  const account = MOCK_ACCOUNT_DETAIL; // Using mock
+  const account = getAccountById(accountId) || MOCK_ACCOUNT_DETAIL; // Fallback to mock if not found
 
   const [currentPeriodDate, setCurrentPeriodDate] = useState(new Date(2025, 4, 1)); // May 2025
-
+  const [editDialogVisible, setEditDialogVisible] = useState(false);
+  const [balanceInputValue, setBalanceInputValue] = useState(account.initialBalance.toString());
+  const [confirmationDialogVisible, setConfirmationDialogVisible] = useState(false);
+  const [newInitialBalance, setNewInitialBalance] = useState(0);
+  const [balanceDifference, setBalanceDifference] = useState(0);
+  
   useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: false,
     });
   }, [navigation]);
+
+  // Open edit dialog with current balance
+  const handleEditPress = () => {
+    setBalanceInputValue(account.initialBalance.toString());
+    setEditDialogVisible(true);
+  };
+
+  // Handle save from edit dialog
+  const handleSaveEdit = () => {
+    // Parse and validate the new balance
+    const newBalance = parseFloat(balanceInputValue);
+    if (isNaN(newBalance)) {
+      Alert.alert('Invalid balance', 'Please enter a valid number');
+      return;
+    }
+
+    // Calculate the difference
+    const difference = newBalance - account.initialBalance;
+    
+    // If there's no change, just close the dialog
+    if (difference === 0) {
+      setEditDialogVisible(false);
+      return;
+    }
+    
+    // Store values for confirmation dialog
+    setNewInitialBalance(newBalance);
+    setBalanceDifference(difference);
+    
+    // Close edit dialog and show confirmation
+    setEditDialogVisible(false);
+    setConfirmationDialogVisible(true);
+  };
+
+  // Handle tracking balance adjustment as transaction
+  const handleBalanceAdjustment = async (shouldTrackInStats: boolean) => {
+    try {
+      // Update the account with new balance
+      await updateAccount({
+        ...account,
+        initialBalance: newInitialBalance
+      });
+      
+      // If we have transaction context, create a transaction for the difference
+      // This would be uncommented when TransactionContext is implemented
+      /*
+      const transactionType = balanceDifference > 0 ? 'income' : 'expense';
+      await addTransaction({
+        type: transactionType,
+        date: new Date().toISOString(),
+        amount: Math.abs(balanceDifference),
+        accountId: account.id,
+        categoryId: shouldTrackInStats ? undefined : 'balance_adjustment', // Special category for untracked adjustments
+        description: shouldTrackInStats ? 'Balance adjustment' : 'Balance difference',
+        // Add any additional properties your transaction needs
+        excludeFromStats: !shouldTrackInStats
+      });
+      */
+      
+      // Show confirmation with proper currency symbol
+      Alert.alert(
+        'Balance Updated',
+        `Account balance has been updated to €${newInitialBalance.toFixed(2)}`
+      );
+      
+    } catch (error) {
+      console.error('Error updating account balance:', error);
+      Alert.alert('Error', 'Failed to update account balance');
+    } finally {
+      setConfirmationDialogVisible(false);
+    }
+  };
 
   // Navigate between periods
   const navigatePeriod = (direction: 'prev' | 'next') => {
@@ -267,7 +343,7 @@ const AccountDetailScreen = () => {
           <Appbar.Action icon="chevron-right" onPress={() => navigatePeriod('next')} />
         </View>
         <Appbar.Action icon="chart-bar" onPress={() => console.log('Show account stats')} />
-        <Appbar.Action icon="pencil" onPress={() => console.log('Edit account')} />
+        <Appbar.Action icon="pencil" onPress={handleEditPress} />
       </Appbar.Header>
 
       {/* Statement Period */}
@@ -338,6 +414,61 @@ const AccountDetailScreen = () => {
         })}
         color={theme.colors.onPrimary}
       />
+
+      {/* Edit Account Dialog */}
+      <Portal>
+        <Dialog visible={editDialogVisible} onDismiss={() => setEditDialogVisible(false)}>
+          <Dialog.Title>Edit Account Balance</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              label="Initial Balance"
+              value={balanceInputValue}
+              onChangeText={setBalanceInputValue}
+              keyboardType="numeric"
+              mode="outlined"
+              style={styles.input}
+            />
+            <Text style={styles.dialogHelperText}>
+              Changing the initial balance will adjust your account's current balance.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setEditDialogVisible(false)}>Cancel</Button>
+            <Button onPress={handleSaveEdit}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+      
+      {/* Confirmation Dialog */}
+      <Portal>
+        <Dialog visible={confirmationDialogVisible} onDismiss={() => setConfirmationDialogVisible(false)}>
+          <Dialog.Title>Track Balance Change?</Dialog.Title>
+          <Dialog.Content>
+            <Text style={styles.dialogText}>
+              You are changing the balance by €{Math.abs(balanceDifference).toFixed(2)} 
+              ({balanceDifference > 0 ? 'increase' : 'decrease'}).
+            </Text>
+            <Text style={styles.dialogText}>
+              Do you want to track this as a transaction in statistics?
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button 
+              onPress={() => handleBalanceAdjustment(false)}
+              style={styles.dialogButton}
+            >
+              No
+            </Button>
+            <Button 
+              onPress={() => handleBalanceAdjustment(true)}
+              mode="contained"
+              style={styles.dialogButton}
+            >
+              Yes
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 };
@@ -503,6 +634,20 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: '#EF4444', // theme.colors.primary
+  },
+  input: {
+    marginBottom: 12,
+  },
+  dialogText: {
+    marginBottom: 8,
+  },
+  dialogHelperText: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginTop: 4,
+  },
+  dialogButton: {
+    marginHorizontal: 4,
   },
 });
 

@@ -27,6 +27,7 @@ export interface Account {
   id: string; // UUID
   name: string;
   type: AccountType;
+  subtype?: string; // Optional field for account subtype (e.g., "Wallet", "Zekuci racun", etc.)
   initialBalance: number;
   currency: string; // e.g., "EUR"
   icon?: string; // Name of an icon from react-native-vector-icons
@@ -70,6 +71,9 @@ export type RootStackParamList = {
   Configuration: undefined;
   BackupRestore: undefined;
   PasscodeSettings: undefined;
+  // Settings screens
+  AccountSettings: undefined;
+  CategorySettings: undefined;
   // Add other full-screen or modal routes here as they are created
   // Example: EditCategory: { categoryId: string };
 };

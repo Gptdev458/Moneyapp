@@ -1,21 +1,15 @@
 // src/screens/AccountsScreen/AccountsScreen.tsx
 import { CompositeNavigationProp, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { SectionList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
+import { useAccountContext } from '../../contexts/AccountContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import { Account, AccountsStackParamList, AccountType, RootStackParamList } from '../../types';
-// import { useAccountContext } from '../../contexts/AccountContext'; // When created
 // import { useTransactionContext } from '../../contexts/TransactionContext'; // For calculating balances
-
-// Import icons
-import {
-    SearchIcon,
-    SettingsIcon
-} from '../../components/icons/IconComponents';
 
 // Navigation prop for this screen (within the AccountsStack)
 type AccountsScreenNavigationProp = CompositeNavigationProp<
@@ -23,46 +17,14 @@ type AccountsScreenNavigationProp = CompositeNavigationProp<
   StackNavigationProp<RootStackParamList>
 >;
 
-// Mock Data (Replace with context data later)
-const MOCK_ACCOUNTS: Account[] = [
-  // Cash accounts
-  { id: 'cash', name: 'Cash', type: 'cash', initialBalance: 0, currency: 'EUR' },
-  { id: 'wallet', name: 'Wallet', type: 'cash', initialBalance: 0, currency: 'EUR' },
-  
-  // Bank accounts
-  { id: 'tekuci', name: 'Tekuci racun', type: 'bank', initialBalance: 0, currency: 'EUR' },
-  { id: 'ziro', name: 'Ziro racun', type: 'bank', initialBalance: 0, currency: 'EUR' },
-  
-  // Savings accounts
-  { id: 'savings1', name: 'Savings Account 1', type: 'savings', initialBalance: 0, currency: 'EUR' },
-  
-  // Other accounts
-  { id: 'piggy', name: 'Piggy bank', type: 'other', initialBalance: 0, currency: 'EUR' },
-  { id: 'coins', name: 'Coins', type: 'other', initialBalance: 0, currency: 'EUR' },
-  
-  // Debt accounts
-  { id: 'creditCard', name: 'Credit Card', type: 'debt', initialBalance: 0, currency: 'EUR' },
-];
-
-// Mock balances (replace with actual calculations from transactions)
-const MOCK_BALANCES: Record<string, number> = {
-  cash: 141.10, 
-  wallet: 141.10, 
-  tekuci: 0.00, 
-  ziro: 5.91, 
-  savings1: 0.63, 
-  piggy: 0.00, 
-  coins: 0.00, 
-  creditCard: -250.00
-};
-
 // Account types for grouping with colors
 const ACCOUNT_TYPES = [
   { type: 'cash', label: 'Cash', color: '#4CAF50' }, // Green
   { type: 'bank', label: 'Bank', color: '#2196F3' }, // Blue
   { type: 'savings', label: 'Savings', color: '#9C27B0' }, // Purple
-  { type: 'other', label: 'Other', color: '#FF9800' }, // Orange
-  { type: 'debt', label: 'Debt', color: '#F44336' } // Red
+  { type: 'debt', label: 'Debt', color: '#F44336' }, // Red
+  { type: 'investment', label: 'Investment', color: '#FF9800' }, // Orange
+  { type: 'other', label: 'Other', color: '#607D8B' } // Gray
 ];
 
 // Account with balance
@@ -71,18 +33,30 @@ interface AccountWithBalance extends Account {
   color?: string;
 }
 
-// Section type for the SectionList
+// Section for SectionList
 interface AccountSection {
   title: string;
-  color: string;
+  color?: string;
   data: AccountWithBalance[];
+  isCollapsed: boolean;
+  totalBalance: number;
 }
 
 const AccountsScreen = () => {
   const { theme } = useAppTheme();
   const navigation = useNavigation<AccountsScreenNavigationProp>();
-  // const { accounts } = useAccountContext();
+  const { accounts } = useAccountContext();
   // const { calculateAccountBalance } = useTransactionContext(); // Function to get balance
+
+  // Track which sections are collapsed
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  
+  const toggleSection = (sectionTitle: string) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [sectionTitle]: !prev[sectionTitle]
+    }));
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -92,19 +66,21 @@ const AccountsScreen = () => {
     }, [])
   );
 
-  // AI Agent: `accountsWithBalances` should be derived from `accounts` context
-  // and balances calculated using transactions.
+  // Get accounts with balances from context data
   const accountsWithBalances = useMemo(() => {
-    return MOCK_ACCOUNTS.map(acc => {
-      const typeInfo = ACCOUNT_TYPES.find(t => t.type === acc.type);
-      return {
-        ...acc,
-        // currentBalance: calculateAccountBalance(acc.id) || 0,
-        currentBalance: MOCK_BALANCES[acc.id] || acc.initialBalance || 0, // Using mock
-        color: typeInfo?.color
-      };
-    });
-  }, []); // Add `accounts` and `calculateAccountBalance` to dependencies
+    return accounts
+      .filter(acc => !acc.isArchived)
+      .map(acc => {
+        const typeInfo = ACCOUNT_TYPES.find(t => t.type === acc.type);
+        return {
+          ...acc,
+          // When transactions context is implemented:
+          // currentBalance: calculateAccountBalance(acc.id) || 0,
+          currentBalance: acc.initialBalance || 0, // Using initial balance until transactions are implemented
+          color: typeInfo?.color
+        };
+      });
+  }, [accounts]); // Add calculateAccountBalance to dependencies when available
 
   const { totalAssets, totalLiabilities, netWorth } = useMemo(() => {
     let assets = 0;
@@ -126,16 +102,21 @@ const AccountsScreen = () => {
     ACCOUNT_TYPES.forEach(typeInfo => {
       const accountsOfType = accountsWithBalances.filter(acc => acc.type === typeInfo.type);
       if (accountsOfType.length > 0) {
+        // Calculate total balance for this category
+        const totalBalance = accountsOfType.reduce((sum, acc) => sum + acc.currentBalance, 0);
+        
         sectionsArray.push({
           title: typeInfo.label,
           color: typeInfo.color,
-          data: accountsOfType
+          data: collapsedSections[typeInfo.label] ? [] : accountsOfType,
+          isCollapsed: collapsedSections[typeInfo.label] || false,
+          totalBalance
         });
       }
     });
     
     return sectionsArray;
-  }, [accountsWithBalances]);
+  }, [accountsWithBalances, collapsedSections]);
 
   const getAccountIcon = (type: AccountType) => {
     switch (type) {
@@ -181,10 +162,35 @@ const AccountsScreen = () => {
           <Text
             style={[
               styles.accountBalance,
-              { color: isNegative ? theme.colors.expense : theme.colors.textPrimary }
+              { color: isNegative ? theme.colors.expense : '#2196F3' } // Blue color for positive balances
             ]}
           >
             {isNegative ? '-' : ''}{item.currency} {Math.abs(item.currentBalance).toFixed(2)}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderSectionHeader = ({ section }: { section: AccountSection }) => {
+    const isNegative = section.totalBalance < 0;
+    
+    return (
+      <TouchableOpacity 
+        onPress={() => toggleSection(section.title)}
+        style={[styles.sectionHeader, { backgroundColor: theme.colors.background }]}
+      >
+        <View style={styles.sectionHeaderContent}>
+          <Text style={[styles.sectionHeaderText, { color: theme.colors.textPrimary }]}>
+            {section.title}
+          </Text>
+          <Text
+            style={[
+              styles.sectionTotalBalance,
+              { color: isNegative ? theme.colors.expense : '#2196F3' }
+            ]}
+          >
+            {isNegative ? '-' : ''}€ {Math.abs(section.totalBalance).toFixed(2)}
           </Text>
         </View>
       </TouchableOpacity>
@@ -196,38 +202,30 @@ const AccountsScreen = () => {
       <View style={styles.summaryRow}>
         <View style={styles.summaryItem}>
           <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Assets</Text>
-          <Text style={[styles.summaryValue, { color: theme.colors.textPrimary }]}>
+          <Text style={[styles.summaryValue, { color: '#2196F3' }]}>
             € {totalAssets.toFixed(2)}
           </Text>
         </View>
         <View style={[styles.summaryDivider, { backgroundColor: theme.colors.border }]} />
         <View style={styles.summaryItem}>
           <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Liabilities</Text>
-          <Text style={[styles.summaryValue, { color: theme.colors.textPrimary }]}>
+          <Text style={[styles.summaryValue, { color: theme.colors.expense }]}>
             € {totalLiabilities.toFixed(2)}
           </Text>
         </View>
+        <View style={[styles.summaryDivider, { backgroundColor: theme.colors.border }]} />
+        <View style={styles.summaryItem}>
+          <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Net Worth</Text>
+          <Text 
+            style={[
+              styles.summaryValue, 
+              { color: netWorth >= 0 ? '#2196F3' : theme.colors.expense }
+            ]}
+          >
+            € {netWorth.toFixed(2)}
+          </Text>
+        </View>
       </View>
-      
-      <View style={[styles.mainDivider, { backgroundColor: theme.colors.border }]} />
-      
-      <View style={styles.netWorthRow}>
-        <Text style={[styles.netWorthLabel, { color: theme.colors.textSecondary }]}>Net Worth</Text>
-        <Text 
-          style={[
-            styles.netWorthValue, 
-            { color: netWorth >= 0 ? theme.colors.income : theme.colors.expense }
-          ]}
-        >
-          € {netWorth.toFixed(2)}
-        </Text>
-      </View>
-    </View>
-  );
-
-  const renderSectionHeader = ({ section }: { section: AccountSection }) => (
-    <View style={[styles.sectionHeader, { backgroundColor: theme.colors.background }]}>
-      <Text style={[styles.sectionHeaderText, { color: theme.colors.textPrimary }]}>{section.title}</Text>
     </View>
   );
 
@@ -239,18 +237,8 @@ const AccountsScreen = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>Accounts</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => console.log('Search pressed')}>
-            <SearchIcon size={24} color={theme.colors.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={() => console.log('Settings pressed')}>
-            <SettingsIcon size={24} color={theme.colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      {/* Empty header for spacing only */}
+      <View style={styles.emptyHeader} />
       
       <SectionList
         sections={sections}
@@ -260,7 +248,7 @@ const AccountsScreen = () => {
         ListHeaderComponent={renderListHeader}
         ListEmptyComponent={renderEmptyComponent}
         contentContainerStyle={styles.listContent}
-        stickySectionHeadersEnabled={true}
+        stickySectionHeadersEnabled={false}
       />
       
       {/* <TouchableOpacity
@@ -277,24 +265,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  emptyHeader: {
+    height: 12,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  headerActions: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
-  iconButton: {
-    marginLeft: 16,
-    padding: 8,
+  headerTitleText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
   },
   listContent: {
     paddingBottom: 80, // Extra bottom padding for FAB
@@ -303,7 +290,6 @@ const styles = StyleSheet.create({
     margin: 16,
     borderRadius: 12,
     overflow: 'hidden',
-    elevation: 1,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -323,34 +309,25 @@ const styles = StyleSheet.create({
   },
   summaryDivider: {
     width: 1,
-    height: '100%',
-    marginHorizontal: 8,
-  },
-  mainDivider: {
-    height: 1,
-    width: '100%',
-  },
-  netWorthRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-  },
-  netWorthLabel: {
-    fontSize: 16,
-  },
-  netWorthValue: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    height: '80%',
+    alignSelf: 'center',
   },
   sectionHeader: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
+  },
+  sectionHeaderContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   sectionHeaderText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
-    textTransform: 'uppercase',
+  },
+  sectionTotalBalance: {
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   accountItem: {
     marginHorizontal: 16,

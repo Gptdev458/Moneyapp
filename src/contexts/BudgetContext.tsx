@@ -21,7 +21,7 @@ interface BudgetContextType {
   getBudgetSpent: (budgetId: string) => number;
   getBudgetRemaining: (budgetId: string) => number;
   getBudgetsForCategory: (categoryId: string) => IBudget[];
-  getCurrentPeriodBudgets: () => IBudget[];
+  getCurrentPeriodBudgets: (date?: Date) => IBudget[];
 }
 
 // Create the context
@@ -231,30 +231,30 @@ export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [budgets]);
 
   // Get budgets for the current period (month/year)
-  const getCurrentPeriodBudgets = useCallback((): IBudget[] => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+  const getCurrentPeriodBudgets = useCallback((date?: Date): IBudget[] => {
+    const targetDate = date || new Date();
+    const targetMonth = targetDate.getMonth();
+    const targetYear = targetDate.getFullYear();
     
     return budgets.filter(budget => {
       const startDate = new Date(budget.startDate);
       
-      // For monthly budgets, check if it's the current month
+      // For monthly budgets, check if it's the target month
       if (budget.periodType === 'monthly') {
-        return startDate.getMonth() === currentMonth && 
-               startDate.getFullYear() === currentYear;
+        return startDate.getMonth() === targetMonth && 
+               startDate.getFullYear() === targetYear;
       }
       
-      // For yearly budgets, check if the current date falls within the year period
+      // For yearly budgets, check if the target date falls within the year period
       if (budget.periodType === 'yearly') {
         const endDate = budget.endDate ? new Date(budget.endDate) : getDefaultEndDate(budget);
-        return now >= startDate && now <= endDate;
+        return targetDate >= startDate && targetDate <= endDate;
       }
       
-      // For custom periods, check if the current date falls within the range
+      // For custom periods, check if the target date falls within the range
       if (budget.periodType === 'custom' && budget.endDate) {
         const endDate = new Date(budget.endDate);
-        return now >= startDate && now <= endDate;
+        return targetDate >= startDate && targetDate <= endDate;
       }
       
       return false;

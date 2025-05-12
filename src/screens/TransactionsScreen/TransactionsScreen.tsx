@@ -132,7 +132,6 @@ const TransactionsScreen = () => {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>All Transactions</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.iconButton}>
             <SearchIcon size={24} color={theme.colors.textPrimary} />
@@ -326,10 +325,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
   },
   headerActions: {
     flexDirection: 'row',

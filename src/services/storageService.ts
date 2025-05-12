@@ -37,10 +37,11 @@ export const DEFAULT_SETTINGS: ISettings = {
 export const DEFAULT_ACCOUNTS: IAccount[] = [
   {
     id: generateId(),
-    name: 'Cash',
+    name: 'Wallet',
     type: 'cash',
+    subtype: 'Wallet',
     initialBalance: 0,
-    currency: 'USD',
+    currency: 'EUR',
     icon: 'cash',
     color: '#4CAF50',
     includeInNetWorth: true,
@@ -48,12 +49,61 @@ export const DEFAULT_ACCOUNTS: IAccount[] = [
   },
   {
     id: generateId(),
-    name: 'Bank Account',
+    name: 'Zekuci racun',
     type: 'bank',
+    subtype: 'Zekuci racun',
     initialBalance: 0,
-    currency: 'USD',
+    currency: 'EUR',
     icon: 'bank',
     color: '#2196F3',
+    includeInNetWorth: true,
+    isArchived: false
+  },
+  {
+    id: generateId(),
+    name: 'Ziro racun',
+    type: 'bank',
+    subtype: 'Ziro racun',
+    initialBalance: 0,
+    currency: 'EUR',
+    icon: 'bank',
+    color: '#2196F3',
+    includeInNetWorth: true,
+    isArchived: false
+  },
+  {
+    id: generateId(),
+    name: 'Investment',
+    type: 'savings',
+    subtype: 'Investment',
+    initialBalance: 0,
+    currency: 'EUR',
+    icon: 'chart-line',
+    color: '#9C27B0',
+    includeInNetWorth: true,
+    isArchived: false
+  },
+  {
+    id: generateId(),
+    name: 'Piggy Bank',
+    type: 'savings',
+    subtype: 'Piggy Bank',
+    initialBalance: 0,
+    currency: 'EUR',
+    icon: 'piggy-bank',
+    color: '#9C27B0',
+    includeInNetWorth: true,
+    isArchived: false
+  },
+  {
+    id: generateId(),
+    name: 'Debt',
+    type: 'debt',
+    subtype: 'Debt',
+    initialBalance: 0,
+    currency: 'EUR',
+    icon: 'credit-card',
+    color: '#F44336',
     includeInNetWorth: true,
     isArchived: false
   }
@@ -63,69 +113,113 @@ export const DEFAULT_CATEGORIES: ICategory[] = [
   // Income categories
   {
     id: generateId(),
-    name: 'Salary',
+    name: 'Income',
     type: 'income',
+    icon: 'cash-plus',
+    color: '#4CAF50'
+  },
+  {
+    id: generateId(),
+    name: 'Paycheck',
+    type: 'income',
+    parentId: undefined, // We'll update this after creation
     icon: 'cash',
     color: '#4CAF50'
   },
   {
     id: generateId(),
-    name: 'Gifts',
+    name: '3d printer',
     type: 'income',
-    icon: 'gift',
-    color: '#9C27B0'
+    parentId: undefined, // We'll update this after creation
+    icon: 'printer-3d',
+    color: '#4CAF50'
   },
   {
     id: generateId(),
-    name: 'Interest',
+    name: 'Other',
     type: 'income',
-    icon: 'percent',
-    color: '#3F51B5'
+    parentId: undefined, // We'll update this after creation
+    icon: 'cash-multiple',
+    color: '#4CAF50'
   },
   // Expense categories
   {
     id: generateId(),
-    name: 'Food & Dining',
+    name: 'Expense',
     type: 'expense',
+    icon: 'cash-minus',
+    color: '#F44336'
+  },
+  {
+    id: generateId(),
+    name: 'Food',
+    type: 'expense',
+    parentId: undefined, // We'll update this after creation
     icon: 'food',
-    color: '#FF5722'
+    color: '#F44336'
   },
   {
     id: generateId(),
-    name: 'Transportation',
+    name: 'Nicotine',
     type: 'expense',
-    icon: 'car',
-    color: '#607D8B'
+    parentId: undefined, // We'll update this after creation
+    icon: 'smoking',
+    color: '#F44336'
   },
   {
     id: generateId(),
-    name: 'Housing',
+    name: 'Rent',
     type: 'expense',
+    parentId: undefined, // We'll update this after creation
     icon: 'home',
-    color: '#795548'
+    color: '#F44336'
   },
   {
     id: generateId(),
-    name: 'Utilities',
+    name: 'bb',
     type: 'expense',
-    icon: 'flash',
-    color: '#FFC107'
+    parentId: undefined, // We'll update this after creation
+    icon: 'application',
+    color: '#F44336'
   },
   {
     id: generateId(),
-    name: 'Shopping',
+    name: 'Dog',
     type: 'expense',
-    icon: 'cart',
-    color: '#E91E63'
+    parentId: undefined, // We'll update this after creation
+    icon: 'dog',
+    color: '#F44336'
   },
   {
     id: generateId(),
-    name: 'Entertainment',
+    name: 'Transport',
     type: 'expense',
-    icon: 'movie',
-    color: '#9E9E9E'
+    parentId: undefined, // We'll update this after creation
+    icon: 'car',
+    color: '#F44336'
   }
 ];
+
+// We need to fix the parent IDs for subcategories
+// This function is called during initialization
+const setupDefaultCategoriesHierarchy = (categories: ICategory[]): ICategory[] => {
+  const incomeCategory = categories.find(c => c.name === 'Income' && c.type === 'income');
+  const expenseCategory = categories.find(c => c.name === 'Expense' && c.type === 'expense');
+  
+  if (incomeCategory && expenseCategory) {
+    return categories.map(category => {
+      if (category.type === 'income' && category.name !== 'Income' && !category.parentId) {
+        return { ...category, parentId: incomeCategory.id };
+      }
+      if (category.type === 'expense' && category.name !== 'Expense' && !category.parentId) {
+        return { ...category, parentId: expenseCategory.id };
+      }
+      return category;
+    });
+  }
+  
+  return categories;
+};
 
 /**
  * Saves data to AsyncStorage with the given key
@@ -195,7 +289,8 @@ export const initializeDefaultData = async (): Promise<void> => {
     // Check and initialize categories
     const categories = await loadData<ICategory[]>(STORAGE_KEYS.CATEGORIES);
     if (categories === null) {
-      await saveData(STORAGE_KEYS.CATEGORIES, DEFAULT_CATEGORIES);
+      const hierarchicalCategories = setupDefaultCategoriesHierarchy(DEFAULT_CATEGORIES);
+      await saveData(STORAGE_KEYS.CATEGORIES, hierarchicalCategories);
       console.log('Initialized default categories');
     }
 
@@ -475,9 +570,23 @@ export const deleteCategory = async (categoryId: string): Promise<void> => {
       throw new Error(`Category with ID ${categoryId} not found`);
     }
     
-    // Soft delete
+    // Soft delete by marking as archived
     categories[index] = { ...categories[index], isArchived: true };
+    
+    // Remove any references to this category from transactions
+    const transactions = await getTransactions();
+    const updatedTransactions = transactions.map(transaction => {
+      if (transaction.categoryId === categoryId) {
+        return { ...transaction, categoryId: undefined };
+      }
+      return transaction;
+    });
+    
+    // Save both updated collections
     await saveCategories(categories);
+    await saveTransactions(updatedTransactions);
+    
+    console.log(`Category ${categoryId} successfully deleted (archived)`);
   } catch (error) {
     console.error('Error deleting category:', error);
     throw error;
@@ -898,6 +1007,10 @@ export const resetAllData = async (): Promise<void> => {
     const keys = Object.values(STORAGE_KEYS);
     await AsyncStorage.multiRemove(keys);
     console.log('All app data has been reset successfully');
+    
+    // Re-initialize with default data
+    await initializeDefaultData();
+    console.log('Default data re-initialized after reset');
   } catch (error) {
     console.error('Error resetting app data:', error);
     throw error;

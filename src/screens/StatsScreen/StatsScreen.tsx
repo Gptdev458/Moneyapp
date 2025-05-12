@@ -9,15 +9,20 @@ import {
     PieChart
 } from 'react-native-chart-kit';
 import {
-    Appbar,
-    IconButton,
     Surface,
     Text,
     TouchableRipple
 } from 'react-native-paper';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAppTheme } from '../../contexts/ThemeContext';
 
 import { BottomTabParamList, RootStackParamList } from '../../types';
+
+// Import icons
+import {
+    SearchIcon,
+    SettingsIcon,
+} from '../../components/icons/IconComponents';
 
 // Navigation prop type
 type StatsScreenNavigationProp = CompositeNavigationProp<
@@ -373,38 +378,35 @@ const StatsScreen = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <Appbar.Header style={styles.appbar}>
+      <View style={styles.header}>
         {selectedCategory && (
-          <Appbar.BackAction onPress={handleBackToMainStats} />
+          <TouchableOpacity onPress={handleBackToMainStats} style={styles.backButton}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
         )}
         <View style={styles.periodNavigation}>
-          <IconButton
-            icon="chevron-left"
-            size={24}
-            onPress={() => navigatePeriod('prev')}
-          />
+          <TouchableOpacity onPress={() => navigatePeriod('prev')} style={styles.iconButton}>
+            <MaterialCommunityIcons name="chevron-left" size={24} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => console.log('Open period picker')}
             style={styles.periodLabelContainer}
           >
-            <Text style={styles.periodLabel}>{getPeriodLabel()}</Text>
+            <Text style={[styles.periodLabel, { color: theme.colors.textPrimary }]}>{getPeriodLabel()}</Text>
           </TouchableOpacity>
-          <IconButton
-            icon="chevron-right"
-            size={24}
-            onPress={() => navigatePeriod('next')}
-          />
+          <TouchableOpacity onPress={() => navigatePeriod('next')} style={styles.iconButton}>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
         </View>
-        <View style={styles.appbarActions}>
-          {!selectedCategory && (
-            <IconButton
-              icon="calendar"
-              size={24}
-              onPress={() => console.log('Change period type')}
-            />
-          )}
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.iconButton}>
+            <SearchIcon size={24} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton}>
+            <SettingsIcon size={24} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
         </View>
-      </Appbar.Header>
+      </View>
 
       {!selectedCategory && (
         <View style={styles.periodTypeContainer}>
@@ -446,9 +448,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  appbar: {
-    elevation: 0,
-    backgroundColor: 'transparent',
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  backButton: {
+    padding: 8,
+  },
+  iconButton: {
+    padding: 8,
   },
   periodNavigation: {
     flexDirection: 'row',
@@ -463,7 +472,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  appbarActions: {
+  headerActions: {
     flexDirection: 'row',
   },
   periodTypeContainer: {

@@ -15,12 +15,6 @@ import { BottomTabParamList, RootStackParamList } from '../../types';
 // Import BudgetCard component
 import BudgetCard from '../../components/common/BudgetCard';
 
-// Import icons
-import {
-    SearchIcon,
-    SettingsIcon,
-} from '../../components/icons/IconComponents';
-
 // Define combined navigation prop type for this screen
 type BudgetScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<BottomTabParamList, 'BudgetTab'>,
@@ -30,7 +24,32 @@ type BudgetScreenNavigationProp = CompositeNavigationProp<
 const BudgetScreen = () => {
   const { theme } = useAppTheme();
   const navigation = useNavigation<BudgetScreenNavigationProp>();
-  const [period, setPeriod] = useState<'month' | 'year'>('month');
+  
+  // Add state for current selected month
+  const [currentDate, setCurrentDate] = useState(new Date());
+  
+  // Format the current month and year for display
+  const formattedMonthYear = useMemo(() => {
+    return currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }, [currentDate]);
+  
+  // Handle navigation to previous month
+  const handlePreviousMonth = useCallback(() => {
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate);
+      newDate.setMonth(newDate.getMonth() - 1);
+      return newDate;
+    });
+  }, []);
+  
+  // Handle navigation to next month
+  const handleNextMonth = useCallback(() => {
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate);
+      newDate.setMonth(newDate.getMonth() + 1);
+      return newDate;
+    });
+  }, []);
   
   // Use BudgetContext
   const { 
@@ -46,12 +65,10 @@ const BudgetScreen = () => {
   // Get categories for displaying icons
   const { categories } = useCategoryContext();
   
-  // Filter budgets based on selected period
+  // Filter budgets based on selected month
   const filteredBudgets = useMemo(() => {
-    return period === 'month' 
-      ? budgets.filter(budget => budget.periodType === 'monthly')
-      : budgets.filter(budget => budget.periodType === 'yearly');
-  }, [budgets, period]);
+    return getCurrentPeriodBudgets(currentDate).filter(budget => budget.periodType === 'monthly');
+  }, [budgets, getCurrentPeriodBudgets, currentDate]);
   
   // Calculate budget totals
   const { totalBudget, totalSpent, totalRemaining, overallProgress } = useMemo(() => {
@@ -62,11 +79,6 @@ const BudgetScreen = () => {
     
     return { totalBudget, totalSpent, totalRemaining, overallProgress };
   }, [filteredBudgets, getBudgetSpent]);
-  
-  // Handle period change
-  const handlePeriodChange = (newPeriod: 'month' | 'year') => {
-    setPeriod(newPeriod);
-  };
   
   // Navigate to add budget screen
   const handleAddBudget = useCallback(() => {
@@ -131,116 +143,59 @@ const BudgetScreen = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>Budgets</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.iconButton}>
-            <SearchIcon size={24} color={theme.colors.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <SettingsIcon size={24} color={theme.colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Period selector */}
-      <View style={[styles.periodSelector, { backgroundColor: theme.colors.surfaceVariant }]}>
-        <TouchableOpacity
-          style={[
-            styles.periodOption,
-            period === 'month' && [styles.activePeriod, { borderBottomColor: theme.colors.primary }]
-          ]}
-          onPress={() => handlePeriodChange('month')}
-        >
-          <Text style={[
-            styles.periodText,
-            { color: period === 'month' ? theme.colors.primary : theme.colors.textSecondary }
-          ]}>
-            Month
-          </Text>
+      {/* Month navigation - moved to top position */}
+      <View style={styles.monthNavigation}>
+        <TouchableOpacity onPress={handlePreviousMonth} style={styles.monthNavigationButton}>
+          <MaterialCommunityIcons name="chevron-left" size={24} color="white" />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.periodOption,
-            period === 'year' && [styles.activePeriod, { borderBottomColor: theme.colors.primary }]
-          ]}
-          onPress={() => handlePeriodChange('year')}
-        >
-          <Text style={[
-            styles.periodText,
-            { color: period === 'year' ? theme.colors.primary : theme.colors.textSecondary }
-          ]}>
-            Year
-          </Text>
+        <Text style={styles.monthNavigationText}>{formattedMonthYear}</Text>
+        <TouchableOpacity onPress={handleNextMonth} style={styles.monthNavigationButton}>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollContentContainer}>
         {/* Overall budget summary */}
-        <View style={[styles.overallBudget, { backgroundColor: theme.colors.surfaceVariant }]}>
-          <View style={styles.overallBudgetHeader}>
-            <Text style={[styles.overallBudgetTitle, { color: theme.colors.textPrimary }]}>
-              Total Budget
-            </Text>
-            <Text style={[styles.overallBudgetAmount, { color: theme.colors.income }]}>
-              € {totalBudget.toFixed(2)}
-            </Text>
-          </View>
+        <View style={styles.budgetSummaryContainer}>
+          <Text style={styles.budgetTotalLabel}>Total Monthly Budget</Text>
+          <Text style={styles.budgetTotalAmount}>€ {totalBudget.toFixed(2)}</Text>
           
+          {/* Progress bar */}
           <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBarWrapper, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+            <View style={styles.progressBarBackground}>
               <View 
                 style={[
                   styles.progressBarFill, 
-                  { width: `${overallProgress * 100}%`, backgroundColor: theme.colors.primary }
+                  { width: `${overallProgress * 100}%` }
                 ]} 
               />
             </View>
-            <View style={styles.budgetStats}>
-              <View style={styles.budgetStatItem}>
-                <Text style={[styles.budgetStatLabel, { color: theme.colors.textSecondary }]}>
-                  Spent
-                </Text>
-                <Text style={[styles.budgetStatValue, { color: theme.colors.expense }]}>
-                  € {totalSpent.toFixed(2)}
-                </Text>
-              </View>
-              <View style={styles.budgetStatItem}>
-                <Text style={[styles.budgetStatLabel, { color: theme.colors.textSecondary }]}>
-                  Remaining
-                </Text>
-                <Text style={[styles.budgetStatValue, { color: theme.colors.income }]}>
-                  € {totalRemaining.toFixed(2)}
-                </Text>
-              </View>
-            </View>
           </View>
-        </View>
-
-        {/* Category budgets */}
-        <View style={styles.sectionTitleContainer}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
-            Category Budgets
-          </Text>
-          <TouchableOpacity onPress={handleAddBudget}>
-            <MaterialCommunityIcons name="plus" size={24} color={theme.colors.primary} />
+          
+          {/* Spent and remaining */}
+          <View style={styles.spentRemainingContainer}>
+            <Text style={styles.spentText}>Spent: € {totalSpent.toFixed(2)}</Text>
+            <Text style={styles.remainingText}>Remaining: € {totalRemaining.toFixed(2)}</Text>
+          </View>
+          
+          {/* Add New Budget button */}
+          <TouchableOpacity 
+            style={styles.addBudgetButton}
+            onPress={handleAddBudget}
+          >
+            <MaterialCommunityIcons name="plus" size={20} color="white" />
+            <Text style={styles.addBudgetButtonText}>Add New Budget</Text>
           </TouchableOpacity>
         </View>
+
+        {/* All Budgets section */}
+        <Text style={styles.allBudgetsHeader}>All Budgets</Text>
         
         {filteredBudgets.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
               No budgets for this period.
             </Text>
-            <TouchableOpacity 
-              style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
-              onPress={handleAddBudget}
-            >
-              <Text style={[styles.addButtonText, { color: theme.colors.onPrimary }]}>
-                Add Budget
-              </Text>
-            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.budgetCards}>
@@ -267,13 +222,6 @@ const BudgetScreen = () => {
           </View>
         )}
       </ScrollView>
-      
-      {/* <TouchableOpacity
-        style={[styles.floatingButton, { backgroundColor: theme.colors.primary }]}
-        onPress={handleAddBudget}
-      >
-        <MaterialCommunityIcons name="plus" size={24} color="#FFFFFF" />
-      </TouchableOpacity> */}
     </SafeAreaView>
   );
 };
@@ -311,109 +259,96 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  header: {
+  // Month navigation
+  monthNavigation: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    justifyContent: 'center',
     paddingVertical: 12,
+    paddingHorizontal: 16,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconButton: {
-    marginLeft: 16,
+  monthNavigationButton: {
     padding: 8,
   },
-  periodSelector: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  periodOption: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  activePeriod: {
-    borderBottomWidth: 3,
-  },
-  periodText: {
-    fontSize: 16,
+  monthNavigationText: {
+    fontSize: 18,
     fontWeight: 'bold',
+    color: 'white',
+    marginHorizontal: 16,
   },
+  // New Budget Summary styles
   scrollContent: {
     flex: 1,
   },
   scrollContentContainer: {
+    paddingBottom: 16,
+  },
+  budgetSummaryContainer: {
     paddingHorizontal: 16,
-    paddingBottom: 80, // Space for FAB
+    paddingVertical: 16,
   },
-  overallBudget: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+  budgetTotalLabel: {
+    fontSize: 16,
+    color: 'white',
+    marginBottom: 4,
   },
-  overallBudgetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  overallBudgetTitle: {
-    fontSize: 18,
+  budgetTotalAmount: {
+    fontSize: 24,
     fontWeight: 'bold',
-  },
-  overallBudgetAmount: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 12,
   },
   progressBarContainer: {
     marginBottom: 8,
   },
-  progressBarWrapper: {
+  progressBarBackground: {
     height: 8,
     borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     overflow: 'hidden',
-    marginBottom: 12,
   },
   progressBarFill: {
     height: '100%',
+    backgroundColor: '#4287f5', // Blue color
     borderRadius: 4,
   },
-  budgetStats: {
+  spentRemainingContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 20,
   },
-  budgetStatItem: {
-    alignItems: 'flex-start',
-  },
-  budgetStatLabel: {
+  spentText: {
     fontSize: 14,
-    marginBottom: 4,
+    color: 'white',
   },
-  budgetStatValue: {
+  remainingText: {
+    fontSize: 14,
+    color: 'white',
+  },
+  addBudgetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginVertical: 8,
+  },
+  addBudgetButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: 'white',
+    marginLeft: 8,
   },
-  sectionTitleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
+  allBudgetsHeader: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: 'white',
+    textAlign: 'center',
+    marginVertical: 16,
   },
   budgetCards: {
+    paddingHorizontal: 16,
     marginBottom: 16,
   },
   emptyContainer: {
@@ -422,17 +357,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    marginBottom: 16,
     textAlign: 'center',
-  },
-  addButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });
 

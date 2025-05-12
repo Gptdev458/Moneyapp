@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -25,21 +25,46 @@ const HomeScreen = () => {
   const { categories } = useCategoryContext();
   const { accounts } = useAccountContext();
   const { budgets, getBudgetSpent, getBudgetProgress, getCurrentPeriodBudgets } = useBudgetContext();
+  
+  // Add state for current selected month
+  const [currentDate, setCurrentDate] = useState(new Date());
+  
+  // Format the current month and year for display
+  const formattedMonthYear = useMemo(() => {
+    return currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }, [currentDate]);
+  
+  // Handle navigation to previous month
+  const handlePreviousMonth = useCallback(() => {
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate);
+      newDate.setMonth(newDate.getMonth() - 1);
+      return newDate;
+    });
+  }, []);
+  
+  // Handle navigation to next month
+  const handleNextMonth = useCallback(() => {
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate);
+      newDate.setMonth(newDate.getMonth() + 1);
+      return newDate;
+    });
+  }, []);
 
-  // Calculate financial summary from transactions
+  // Calculate financial summary from transactions (now filtered by selected month)
   const financialSummary = useMemo(() => {
     let income = 0;
     let expenses = 0;
     
-    // Get current month transactions
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+    // Get selected month transactions
+    const selectedMonth = currentDate.getMonth();
+    const selectedYear = currentDate.getFullYear();
     
     transactions.forEach(tx => {
       const txDate = new Date(tx.date);
-      if (txDate.getMonth() === currentMonth && 
-          txDate.getFullYear() === currentYear) {
+      if (txDate.getMonth() === selectedMonth && 
+          txDate.getFullYear() === selectedYear) {
         if (tx.type === 'income') {
           income += tx.amount;
         } else if (tx.type === 'expense') {
@@ -53,17 +78,26 @@ const HomeScreen = () => {
       expenses,
       total: income - expenses
     };
-  }, [transactions]);
+  }, [transactions, currentDate]);
 
-  // Get transactions grouped by date
+  // Get transactions grouped by date (filtered by selected month)
   const groupedTransactions = useMemo(() => {
     // Sort transactions by date (newest first)
     const sortedTransactions = [...transactions].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
     
+    // Filter transactions by selected month
+    const selectedMonth = currentDate.getMonth();
+    const selectedYear = currentDate.getFullYear();
+    
+    const filteredTransactions = sortedTransactions.filter(tx => {
+      const txDate = new Date(tx.date);
+      return txDate.getMonth() === selectedMonth && txDate.getFullYear() === selectedYear;
+    });
+    
     // Take only the most recent transactions
-    const recentTransactions = sortedTransactions.slice(0, 10);
+    const recentTransactions = filteredTransactions.slice(0, 10);
     
     // Group by date
     const grouped: Record<string, {
@@ -106,17 +140,17 @@ const HomeScreen = () => {
     return Object.values(grouped).sort(
       (a, b) => b.date.getTime() - a.date.getTime()
     );
-  }, [transactions]);
+  }, [transactions, currentDate]);
 
-  // Get current period budgets for the home screen
+  // Get current period budgets for the home screen (filtered by selected month)
   const currentBudgets = useMemo(() => {
     // Get top 2 budgets to display (with highest spending percentage)
-    const currentPeriodBudgets = getCurrentPeriodBudgets();
+    const currentPeriodBudgets = getCurrentPeriodBudgets(currentDate);
     return currentPeriodBudgets
       .filter(budget => budget.periodType === 'monthly') // Only show monthly budgets
       .sort((a, b) => getBudgetProgress(b.id) - getBudgetProgress(a.id)) // Sort by progress (highest first)
       .slice(0, 2); // Take top 2
-  }, [budgets, getBudgetProgress, getCurrentPeriodBudgets]);
+  }, [budgets, getBudgetProgress, getCurrentPeriodBudgets, currentDate]);
   
   // Transform budget data for display
   const displayBudgets = useMemo(() => {
@@ -166,14 +200,23 @@ const HomeScreen = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
-      {/* Header with icons */}
+      {/* Header with month picker on left and icons on right */}
       <View style={[styles.header, { paddingHorizontal: 24 }]}>
+        <View style={styles.monthPickerContainer}>
+          <TouchableOpacity onPress={handlePreviousMonth} style={styles.monthPickerArrowButton}>
+            <MaterialCommunityIcons name="chevron-left" size={24} color="white" />
+          </TouchableOpacity>
+          <Text style={[styles.monthPickerText, { color: 'white' }]}>{formattedMonthYear}</Text>
+          <TouchableOpacity onPress={handleNextMonth} style={styles.monthPickerArrowButton}>
+            <MaterialCommunityIcons name="chevron-right" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.iconButton}>
-            <SearchIcon size={24} color={theme.colors.textPrimary} />
+            <SearchIcon size={24} color="white" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
-            <SettingsIcon size={24} color={theme.colors.textPrimary} />
+            <SettingsIcon size={24} color="white" />
           </TouchableOpacity>
         </View>
       </View>
@@ -374,7 +417,8 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 16,
   },
   headerRight: {
@@ -392,14 +436,14 @@ const styles = StyleSheet.create({
   balanceSummaryContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 24,
+    padding: 12,
   },
   balanceItemContainer: {
     alignItems: 'center',
   },
   balanceLabel: {
     fontSize: 12,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   balanceAmount: {
     fontSize: 16,
@@ -539,7 +583,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontStyle: 'italic',
     marginVertical: 12,
-  }
+  },
+  monthPickerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  monthPickerArrowButton: {
+    padding: 4,
+  },
+  monthPickerText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginHorizontal: 8,
+  },
 });
 
 export default HomeScreen; 

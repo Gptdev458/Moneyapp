@@ -16,9 +16,11 @@ import MoreScreen from '../screens/MoreScreen/MoreScreen';
 import StatsScreen from '../screens/StatsScreen/StatsScreen';
 
 // Import screens for modal/full-screen routes
+import AccountSettingsScreen from '../screens/AccountSettingsScreen/AccountSettingsScreen';
 import AccountDetailScreen from '../screens/AccountsScreen/AccountDetailScreen';
 import AddTransactionScreen from '../screens/AddTransaction/AddTransactionScreen';
 import AddBudgetScreen from '../screens/BudgetScreen/AddBudgetScreen';
+import CategorySettingsScreen from '../screens/CategorySettingsScreen/CategorySettingsScreen';
 import CategoryDetailStatsScreen from '../screens/StatsScreen/CategoryDetailStatsScreen';
 
 // Create navigators
@@ -135,27 +137,27 @@ const MainTabNavigator = () => {
       <Tab.Screen 
         name="TransactionsTab" 
         component={HomeScreen}
-        options={{ title: 'Transactions' }}
+        options={{ title: 'Transactions', headerShown: false }}
       />
       <Tab.Screen 
         name="BudgetTab" 
         component={BudgetScreen}
-        options={{ title: 'Budget', tabBarLabel: 'Budget' }}
+        options={{ title: 'Budget', tabBarLabel: 'Budget', headerShown: false }}
       />
       <Tab.Screen 
         name="StatsTab" 
         component={StatsScreen}
-        options={{ title: 'Statistics', tabBarLabel: 'Stats' }}
+        options={{ title: 'Statistics', tabBarLabel: 'Stats', headerShown: false }}
       />
       <Tab.Screen 
         name="AccountsTab" 
         component={AccountsScreen}
-        options={{ title: 'Accounts' }}
+        options={{ title: 'Accounts', headerShown: false }}
       />
       <Tab.Screen 
         name="MoreTab" 
         component={MoreScreen}
-        options={{ title: 'More' }}
+        options={{ title: 'More', headerShown: false }}
       />
     </Tab.Navigator>
   );
@@ -173,6 +175,7 @@ export const AppNavigator = () => {
         },
         headerTintColor: theme.colors.onSurface,
         cardStyle: { backgroundColor: theme.colors.background },
+        headerShown: false
       }}
     >
       <Stack.Screen 
@@ -218,6 +221,22 @@ export const AppNavigator = () => {
         component={require('../screens/TransactionsScreen/TransactionsScreen').default}
         options={() => ({
           title: 'All Transactions',
+        })}
+      />
+      <Stack.Screen 
+        name="AccountSettings" 
+        component={AccountSettingsScreen}
+        options={() => ({
+          title: 'Account Settings',
+          headerShown: false,
+        })}
+      />
+      <Stack.Screen 
+        name="CategorySettings" 
+        component={CategorySettingsScreen}
+        options={() => ({
+          title: 'Category Settings',
+          headerShown: false,
         })}
       />
     </Stack.Navigator>

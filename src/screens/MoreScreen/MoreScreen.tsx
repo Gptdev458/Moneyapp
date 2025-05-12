@@ -80,13 +80,13 @@ const MoreScreen = () => {
           title: 'Accounts Settings',
           icon: 'wallet',
           iconColor: '#3b82f6', // blue-500
-          onPress: () => console.log('Accounts Settings pressed')
+          onPress: () => navigation.navigate('AccountSettings')
         },
         {
           title: 'Category Settings',
           icon: 'shape',
           iconColor: '#a855f7', // purple-500
-          onPress: () => console.log('Category Settings pressed')
+          onPress: () => navigation.navigate('CategorySettings')
         },
         {
           title: 'Budget Settings',
@@ -246,14 +246,15 @@ const MoreScreen = () => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={[styles.header, { borderBottomWidth: 1, borderBottomColor: theme.colors.border }]}>
-        <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>Settings</Text>
-        <TouchableOpacity style={styles.headerIcon}>
-          <MaterialCommunityIcons 
-            name="cog-outline" 
-            size={24} 
-            color={theme.colors.textPrimary} 
-          />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.headerIcon}>
+            <MaterialCommunityIcons 
+              name="cog-outline" 
+              size={24} 
+              color={theme.colors.textPrimary} 
+            />
+          </TouchableOpacity>
+        </View>
       </View>
       
       <ScrollView style={styles.scrollContent}>
@@ -297,9 +298,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerIcon: {
     padding: 4,
